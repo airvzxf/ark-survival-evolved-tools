@@ -1,0 +1,128 @@
+#!/usr/bin/env python3
+# -*- coding: UTF-8 -*-
+
+"""
+General stats class.
+"""
+from core.game.Reference import Reference
+from core.dinosaur.Dinosaurs import Dinosaurs
+from core.server.Server import Server
+
+
+class Stats:
+    dinosaur: Dinosaurs
+    server: Server
+    attribute_item: str = Reference.health
+
+    def __init__(self, dinosaur: Dinosaurs, server: Server):
+        self.dinosaur = dinosaur
+        print(f'Dinosaur: {self.dinosaur}')
+        self.server = server
+
+    def get_wild_value(self) -> float:
+        # Wv:  Wild value before taming.
+        # B:   Base value.
+        # IwL: Increase per wild-level.
+        # Iw:  IwL as % of B.
+        # Wl:  Wild level of the increased attribute.
+        # IwM: Increase per wild level modifier (PerLevelStatsMultiplier_DinoWild).
+        # Wv = B * (1 + Wl * Iw * IwM)
+        b: float = (self.dinosaur.attributes
+                    .get(Reference.base_value)
+                    .get(self.attribute_item))
+        iwl: float = (self.dinosaur.attributes
+                      .get(Reference.wild_point)
+                      .get(self.attribute_item))
+        iw: float = iwl / b
+        wl: float = 0
+        iwm: float = (self.server.attributes.get(Reference.per_level_stats_multiplier)
+                      .get(Reference.dino_wild)
+                      .get(self.attribute_item))
+        wv: float = b * (1 + round(wl * iw * iwm, 2))
+        wv = round(wv, 2)
+        print(f'Wild value for {self.attribute_item}')
+        print(f'B:   {b}')
+        print(f'Iw:  {iw}')
+        print(f'Wl:  {wl}')
+        print(f'IwM: {iwm}')
+        print('Wv = B * (1 + (Wl * Iw * IwM))')
+        print(f'{wv} = {b} * (1 + ({wl} * {iw} * {iwm}))')
+        print(f'Wv: {wv}')
+        return wv
+
+    def get_value_post_tamed(self) -> float:
+        # Vpt:  Value post-tamed.
+        # Wv:   Wild value before taming.
+        # TBHM: Tamed Base Health Multiplier.
+        # Ta:   Additive taming-bonus.
+        # TaM:  Additive taming-bonus modifier (PerLevelStatsMultiplier_DinoTamed_Add).
+        # TE:   Taming effectiveness (when tamed).
+        # Tm:   Multiplicative taming-bonus.
+        # TmM:  Multiplicative taming-bonus modifier (PerLevelStatsMultiplier_DinoTamed_Affinity).
+        # Vpt = (Wv * TBHM + Ta * TaM) * (1 + TE * Tm * TmM)
+        wv: float = self.get_wild_value()
+        tbhm: float = 1
+        ta: float = (self.dinosaur.attributes.get(Reference.taming_bonus_additive)
+                     .get(self.attribute_item)) / 100
+        tam: float = (self.server.attributes.get(Reference.per_level_stats_multiplier)
+                      .get(Reference.dino_tamed_add)
+                      .get(self.attribute_item))
+        te: float = 99.33 / 100
+        tm: float = (self.dinosaur.attributes.get(Reference.taming_bonus_multiplicative)
+                     .get(self.attribute_item)) / 100
+        tmm: float = (self.server.attributes.get(Reference.per_level_stats_multiplier)
+                      .get(Reference.dino_tamed_affinity)
+                      .get(self.attribute_item))
+        vpt: float = (round(wv * tbhm, 2) + round(ta * tam, 2)) * (1 + round(te * tm * tmm, 2))
+        vpt = round(vpt, 2)
+        print()
+        print(f'Value post tamed for {self.attribute_item}')
+        print(f'Wv:   {wv}')
+        print(f'TBHM: {tbhm}')
+        print(f'Ta:   {ta}')
+        print(f'TaM:  {tam}')
+        print(f'TE:   {te}')
+        print(f'Tm:   {tm}')
+        print(f'TmM:  {tmm}')
+        print(f'Wv * TBHM: {wv * tbhm}')
+        print(f'Ta * TaM: {ta * tam}')
+        print(f'(Wv * TBHM) + (Ta * TaM): {wv * tbhm + ta * tam}')
+        print(f'TE * Tm * TmM: {te * tm * tmm}')
+        print('Vpt = ((Wv * TBHM) + (Ta * TaM)) * (1 + (TE * Tm * TmM))')
+        print(f'{vpt} = (({wv} * {tbhm}) + ({ta} * {tam})) * (1 + ({te} * {tm} * {tmm}))')
+        print(f'Vpt: {vpt}')
+        return vpt
+
+    def get_final_value(self) -> float:
+        # V:    Final value.
+        # Vpt:  Value post-tamed.
+        # Ld:   Times the player leveled the attribute.
+        # IdL:  Increase per domesticated level percent as % of Vpt (value post-tamed).
+        # IdM:  Increase per domesticated level modifier (PerLevelStatsMultiplier_DinoTamed).
+        # V = Vpt * (1 + Ld * IdL * IdM)
+        vpt: float = self.get_value_post_tamed()
+        ld: float = 1
+        inc_level: float = (self.dinosaur.attributes
+                            .get(Reference.tamed)
+                            .get(self.attribute_item))
+        idl: float = inc_level / 100
+        idm: float = 1
+        v: float = vpt * (1 + round(ld * idl * idm, 2))
+        v = round(v, 1)
+        print()
+        print(f'Final value for {self.attribute_item}')
+        print(f'Vpt: {vpt}')
+        print(f'Ld:  {ld}')
+        print(f'IdL: {idl}')
+        print(f'IdM: {idm}')
+        print(f'Ld * IdL * IdM: {(ld * idl * idm)}')
+        print('V = Vpt * (1 + (Ld * IdL * IdM))')
+        print(f'V = {vpt} * (1 + ({ld} * {idl} * {idm}))')
+        print(f'v: {v}')
+        return v
+
+    def display_values(self):
+        # self.attribute_item: str = Attribute.health
+        # self.attribute_item: str = Attribute.weight
+        # self.attribute_item: str = Attribute.speed_multiplier
+        self.get_final_value()
